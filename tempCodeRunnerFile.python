@@ -1,0 +1,18 @@
+import pyautogui
+import time
+
+def cordinate():
+    try:
+        while True:
+            # Get the current mouse cursor position
+            x, y = pyautogui.position()
+            print(f"Cursor Position: X: {x}, Y: {y}")
+            time.sleep(2)  # Update every second
+    except KeyboardInterrupt:
+        print("\nProgram terminated.")
+
+def main():
+    cordinate()
+
+if __name__ == "__main__":  
+    main()
