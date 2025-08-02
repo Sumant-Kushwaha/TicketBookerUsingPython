@@ -1,7 +1,7 @@
 import subprocess
 import time
 import pyautogui
-import os
+import traceback
 
 
 try:
@@ -40,12 +40,20 @@ def ensure_chrome_active():
         print("Could not activate Chrome window. Please check if Chrome is installed and in PATH.")
 
 
-origin="LUCKNOW NR - LKO (LUCKNOW)"
+origin="BAPUDM MOTIHARI - BMKI"
 destination="ANAND VIHAR TRM - ANVT (NEW DELHI)"
 journeyDate="1/09/2025"
 journetClass="g" #Always use small letter
 trainNumber="12555"
 
+def findModifySearch(image_path, confidence=0.8):
+    try:
+        found = pyautogui.locateCenterOnScreen(image_path, confidence=confidence)
+        if found:
+            return found
+    except pyautogui.ImageNotFoundException:
+        pass
+    return None
 
 def fillJourneyDetails(image_path, confidence=0.8):
     try:
@@ -79,6 +87,7 @@ def find_Train():
     pyautogui.write(trainNumber)
     # pyautogui.hotkey("ctrl","backspace")
     time.sleep(.3)
+    pyautogui.press("enter")
     pyautogui.click(1375,129)
     time.sleep(.5)
     pyautogui.click(0,500)
@@ -91,21 +100,95 @@ def waitForLoaderToFinish(image_path, confidence=0.8):
                 print("Loader Found Waiting...")
             else:
                 print("Loader not found on the screen. Proceeding to find train...")
-                find_Train()
                 return None
         except pyautogui.ImageNotFoundException:
             print("Loader not found on the screen. Proceeding to find train...")
-            find_Train()
             return None
         time.sleep(0.5)
 
+def select_Train(image_path, confidence=0.8):
+    try:
+        box = pyautogui.locateOnScreen(image_path, confidence=confidence)
+        if not box:
+            print("Train name not found.")
+            return None
+
+        top_left = (box.left, box.top)
+        pyautogui.click(top_left)
+        region = (box.left, box.top, int(1131.2), int(400.6))
+        print(f"Defined region: {region}")
+
+        # Move mouse to bottom-left of region
+        # bottom_left = (box.left, box.top + int(400.6) - 1)
+        # pyautogui.moveTo(bottom_left)
+        # print(f"Moved mouse to bottom-left of region: {bottom_left}")
+        # time.sleep(2)
+
+        # Try locating and clicking B_SL twice
+        for attempt in range(2):
+            B_Class = pyautogui.locateOnScreen('Images/ClassImage/B/B_SL.png', region=region, confidence=confidence)
+            if B_Class:
+                pyautogui.click(B_Class)
+                print(f"'B_SL' clicked on attempt {attempt + 1}")
+                break
+            else:
+                print(f"'B_SL' not found on attempt {attempt + 1}")
+        else:
+            print("B_SL not found after 2 attempts.")
+            return top_left
+
+        waitForLoaderToFinish("Images/LoadingImage.png")
+
+        pyautogui.click(box.left + 100, box.top + 200)
+        print(f"Clicked fixed coordinate at ({box.left + 100}, {box.top + 200})")
+
+        time.sleep(.5) 
+        # Try to find and click BookNow
+        while True:
+            try:
+                BookNow = pyautogui.locateOnScreen('Images/BookNow.png', region=region, confidence=confidence)
+            except pyautogui.ImageNotFoundException:
+                BookNow = None
+            if BookNow:
+                pyautogui.click(BookNow)
+                print("Clicked 'BookNow' button.")
+                return top_left
+            # If BookNow not found, click, find S_SL, click, coordinate click, retry BookNow
+            try:
+                S_SL = pyautogui.locateOnScreen('Images/ClassImage/S/S_SL.png', region=region, confidence=confidence)
+            except pyautogui.ImageNotFoundException:
+                S_SL = None
+            if S_SL:
+                pyautogui.click(S_SL)
+                print("Clicked 'S_SL' button.")
+                waitForLoaderToFinish("Images/LoadingImage.png")
+                pyautogui.click(box.left + 100, box.top + 200)
+                print(f"Clicked fixed coordinate again at ({box.left + 100}, {box.top + 200})")
+                time.sleep(.5)
+                # Loop will retry BookNow
+            else:
+                print("S_SL not found. Stopping loop.")
+                break
+        return top_left
+
+    except Exception:
+        traceback.print_exc()
+        return None
+
+
+def run():
+    ensure_chrome_active()
+    time.sleep(1)
+    fillJourneyDetails("Images/BookTicketAtStationFilling.png")
+    waitForLoaderToFinish("Images/LoadingImage.png")
+    findModifySearch("Images\ModifySearch.png")
+    find_Train()
+    select_Train("Images/SaptKranti.png")
+
+# run()
 
 
 
-ensure_chrome_active()
-time.sleep(1)
-fillJourneyDetails("Images/BookTicketAtStationFilling.png")
-waitForLoaderToFinish("Images/loadingImage.png")
 
 
 
